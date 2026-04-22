@@ -306,6 +306,22 @@ const HomePage = ({ setPage }) => {
 
 const GalleryPage = ({ setPage }) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [blouses, setBlouses] = useState([]);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/blouses`)
+      .then(res => res.json())
+      .then(data => setBlouses(Array.isArray(data) ? data : []))
+      .catch(err => console.error("Error fetching blouses:", err));
+  }, []);
+
+  const designs = [
+    ...PRODUCTS,
+    ...blouses.map(blouse => ({
+      ...blouse,
+      description: blouse.description || "Uploaded blouse design"
+    }))
+  ];
 
   return (
     <div style={{ paddingTop:80, minHeight:"100vh", background:"var(--bg)" }}>
@@ -318,8 +334,8 @@ const GalleryPage = ({ setPage }) => {
       </div>
       <div style={{ maxWidth:1400, margin:"0 auto", padding:"40px" }}>
         <div className="grid-4" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:24 }}>
-          {PRODUCTS.map((p,i) => (
-            <div key={p.id} onClick={()=>setSelectedProduct(p)} style={{ cursor:"pointer" }}>
+          {designs.map((p,i) => (
+            <div key={`${p.name}-${p.id}-${i}`} onClick={()=>setSelectedProduct(p)} style={{ cursor:"pointer" }}>
               <ProductCard product={p} delay={i*40} onView={()=>setSelectedProduct(p)} />
             </div>
           ))}
@@ -338,10 +354,35 @@ const OrderPage = ({ setPage }) => {
   const [submitted, setSubmitted] = useState(false);
   const [price, setPrice] = useState(null);
   const [loadingPrice, setLoadingPrice] = useState(false);
+  const [blouses, setBlouses] = useState([]);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/blouses`)
+      .then(res => res.json())
+      .then(data => setBlouses(Array.isArray(data) ? data : []))
+      .catch(err => console.error("Error fetching blouses:", err));
+  }, []);
+
+  const designs = [
+    ...PRODUCTS,
+    ...blouses.map(blouse => ({
+      ...blouse,
+      description: blouse.description || "Uploaded blouse design"
+    }))
+  ];
 
   // Fetch price when design is selected
   useEffect(() => {
     if (selectedDesign) {
+      const selectedPrice = Number(selectedDesign.price);
+
+      if (!Number.isNaN(selectedPrice) && selectedPrice > 0) {
+        setLoadingPrice(true);
+        setPrice(selectedPrice);
+        setLoadingPrice(false);
+        return;
+      }
+
       setLoadingPrice(true);
       fetch(`${API_BASE_URL}/api/settings/prices/${selectedDesign.id}`)
         .then(res => res.json())
@@ -422,9 +463,9 @@ const OrderPage = ({ setPage }) => {
             <div>
               <h3 style={{ fontSize:20, fontWeight:600, color:"var(--text)", marginBottom:24 }}>Step 1: Select Design</h3>
               <div className="grid-3" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:40 }}>
-                {PRODUCTS.map(p => (
+                {designs.map(p => (
                   <div
-                    key={p.id}
+                    key={`${p.name}-${p.id}`}
                     onClick={() => setSelectedDesign(p)}
                     style={{
                       cursor:"pointer",
@@ -439,6 +480,9 @@ const OrderPage = ({ setPage }) => {
                     <img src={p.image} alt={p.name} style={{ width:"100%", height:160, objectFit:"cover" }} />
                     <div style={{ padding:12, textAlign:"center" }}>
                       <div style={{ fontSize:12, fontWeight:600, color:"var(--text)" }}>{p.name}</div>
+                      {p.price && (
+                        <div style={{ fontSize:11, color:"var(--text3)", marginTop:4 }}>₹{Number(p.price).toLocaleString()}</div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -449,7 +493,7 @@ const OrderPage = ({ setPage }) => {
                   <div style={{ fontSize:13, fontWeight:600, color:"var(--gold)", marginBottom:12, textTransform:"uppercase" }}>Selected</div>
                   <img src={selectedDesign.image} alt={selectedDesign.name} style={{ width:"100%", height:240, objectFit:"cover", borderRadius:10, marginBottom:16 }} />
                   <h4 style={{ fontSize:18, fontWeight:600, color:"var(--text)", marginBottom:12 }}>{selectedDesign.name}</h4>
-                  <p style={{ fontSize:13, color:"var(--text3)", marginBottom:16 }}>{selectedDesign.description}</p>
+                  <p style={{ fontSize:13, color:"var(--text3)", marginBottom:16 }}>{selectedDesign.description || "Uploaded blouse design"}</p>
                 </div>
               )}
             </div>
