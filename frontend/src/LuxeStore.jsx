@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // Showcase products from your design images
 const PRODUCTS = [
@@ -18,6 +18,15 @@ const PRODUCTS = [
   { id: 14, name: "Design 14", image: "/images/14.jpg", description: "Design innovation" },
   { id: 15, name: "Design 15", image: "/images/15.jpg", description: "Creative expression" },
   { id: 16, name: "Design 16", image: "/images/16.jpg", description: "Masterpiece collection" },
+];
+
+const EMBROIDERY_DESIGNS = [
+  { id: "emb-1", name: "Embroidery Design 1", image: "/images/emb/1.png", description: "Handcrafted embroidery neckline", price: 1500 },
+  { id: "emb-2", name: "Embroidery Design 2", image: "/images/emb/2.png", description: "Handcrafted embroidery neckline", price: 1500 },
+  { id: "emb-3", name: "Embroidery Design 3", image: "/images/emb/3.png", description: "Handcrafted embroidery neckline", price: 1500 },
+  { id: "emb-4", name: "Embroidery Design 4", image: "/images/emb/4.png", description: "Handcrafted embroidery neckline", price: 1500 },
+  { id: "emb-5", name: "Embroidery Design 5", image: "/images/emb/5.png", description: "Handcrafted embroidery neckline", price: 1500 },
+  { id: "emb-6", name: "Embroidery Design 6", image: "/images/emb/6.png", description: "Handcrafted embroidery neckline", price: 1500 },
 ];
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
@@ -121,7 +130,7 @@ const Navbar = ({ page, setPage, darkMode, setDarkMode, isAdminLoggedIn, setIsAd
   const [menuOpen, setMenuOpen] = useState(false);
   const navItems = isAdminLoggedIn
     ? [["home", "Home"], ["adminDashboard", "Admin Dashboard"]]
-    : [["home", "Home"], ["gallery", "Gallery"], ["order", "Order"], ["adminLogin", "Admin"]];
+    : [["home", "Home"], ["gallery", "Gallery"], ["embroidery", "Embroidery Work"], ["order", "Order"], ["adminLogin", "Admin"]];
   const navItemStyle = {
     fontSize: 13,
     fontWeight: 500,
@@ -204,19 +213,53 @@ const ProductCard = ({ product, onView, delay=0 }) => {
       <div style={{ padding:"20px" }}>
         <div style={{ fontSize:15, fontWeight:500, color:"var(--text)", marginBottom:8, lineHeight:1.4 }}>{product.name}</div>
         <div style={{ fontSize:13, color:"var(--text3)" }}>{product.description}</div>
+        {product.price && <div style={{ fontSize:15, fontWeight:600, color:"var(--gold)", marginTop:12 }}>₹{Number(product.price).toLocaleString('en-IN')} per image</div>}
       </div>
     </div>
   );
 };
 
 const DesignModal = ({ product, onClose }) => {
+  const [zoom, setZoom] = useState(1);
+
+  const updateZoom = (change) => {
+    setZoom(currentZoom => Math.min(3, Math.max(1, Number((currentZoom + change).toFixed(1)))));
+  };
+
   return (
     <div className="overlay" onClick={onClose}>
-      <div className="modal" onClick={e=>e.stopPropagation()}>
+      <div className="modal" style={{ position:"relative", maxWidth:1100, width:"94%", padding:24 }} onClick={e=>e.stopPropagation()}>
         <button onClick={onClose} style={{ position:"absolute", top:16, right:16, background:"rgba(0,0,0,0.1)", border:"none", color:"var(--text)", borderRadius:"50%", width:36, height:36, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
           <Icon name="x" size={16} />
         </button>
-        <img src={product.image} alt={product.name} style={{ width:"100%", borderRadius:12, marginBottom:24 }} />
+        <div
+          onWheel={event => {
+            updateZoom(event.deltaY < 0 ? 0.25 : -0.25);
+          }}
+          title="Scroll to zoom"
+          style={{ position:"relative", overflow:"auto", borderRadius:12, marginBottom:16, background:"var(--bg2)", display:"flex", justifyContent:zoom > 1 ? "flex-start" : "center", alignItems:"center", minHeight:180, maxHeight:"72vh", cursor:zoom > 1 ? "grab" : "zoom-in" }}
+        >
+          <img
+            src={product.image}
+            alt={product.name}
+            style={{
+              width: zoom > 1 ? `${zoom * 100}%` : "auto",
+              minWidth: zoom > 1 ? `${zoom * 100}%` : "auto",
+              maxWidth: zoom > 1 ? "none" : "100%",
+              maxHeight: zoom > 1 ? "none" : "72vh",
+              height:"auto",
+              objectFit:"contain",
+              transition:"width 0.25s ease",
+              borderRadius:12
+            }}
+          />
+        </div>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, marginBottom:24 }}>
+          <button type="button" onClick={() => updateZoom(-0.25)} disabled={zoom <= 1} aria-label="Zoom out" style={{ width:38, height:34, border:"1px solid var(--card-border)", borderRadius:8, background:"var(--card)", color:"var(--text)", cursor:zoom <= 1 ? "not-allowed" : "pointer", opacity:zoom <= 1 ? 0.5 : 1, fontSize:20 }}>−</button>
+          <button type="button" onClick={() => setZoom(1)} aria-label="Reset image zoom" style={{ minWidth:82, height:34, border:"1px solid var(--card-border)", borderRadius:8, background:"transparent", color:"var(--text2)", cursor:"pointer", fontSize:12 }}>Reset {Math.round(zoom * 100)}%</button>
+          <button type="button" onClick={() => updateZoom(0.25)} disabled={zoom >= 3} aria-label="Zoom in" style={{ width:38, height:34, border:"1px solid var(--gold)", borderRadius:8, background:"var(--gold)", color:"white", cursor:zoom >= 3 ? "not-allowed" : "pointer", opacity:zoom >= 3 ? 0.5 : 1, fontSize:20 }}>+</button>
+        </div>
+        <p style={{ fontSize:12, color:"var(--text3)", textAlign:"center", marginBottom:16 }}>Scroll over the image to zoom. Scrollbars appear when the image is enlarged.</p>
         <h2 className="font-display" style={{ fontSize:32, fontWeight:400, color:"var(--text)", marginBottom:12 }}>{product.name}</h2>
         <p style={{ fontSize:15, color:"var(--text2)", lineHeight:1.8, marginBottom:16 }}>{product.description}</p>
         <p style={{ fontSize:13, color:"var(--text3)" }}>Design #{product.id}</p>
@@ -241,9 +284,12 @@ const HomePage = ({ setPage }) => {
       <div className="hero-section" style={{ minHeight:"100vh", position:"relative", overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center", background:"var(--bg)" }}>
         <img src="/images/HOME.png" alt="Home Showcase" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", objectPosition:"center" }} />
         <div style={{ position:"absolute", inset:0, background:"linear-gradient(180deg, rgba(10,10,10,0.2) 0%, rgba(10,10,10,0.1) 50%, rgba(10,10,10,0.3) 100%)" }} />
-        <div style={{ position:"relative", zIndex:2, textAlign:"center" }}>
+        <div style={{ position:"relative", zIndex:2, textAlign:"center", display:"flex", flexWrap:"wrap", justifyContent:"center", gap:12 }}>
           <Btn onClick={()=>setPage("gallery")} style={{ fontSize:16, padding:"18px 40px", background:"var(--gold)", color:"var(--text)", border:"none", fontWeight:600 }}>
             View Gallery <Icon name="arrow" size={16} />
+          </Btn>
+          <Btn onClick={()=>setPage("embroidery")} variant="secondary" style={{ fontSize:16, padding:"18px 32px", background:"rgba(10,10,10,0.55)", color:"#f5f0e8", borderColor:"#f5f0e8", fontWeight:600 }}>
+            Embroidery Work · ₹1,500/image <Icon name="arrow" size={16} />
           </Btn>
         </div>
       </div>
@@ -347,6 +393,35 @@ const GalleryPage = ({ setPage }) => {
   );
 };
 
+const EmbroideryPage = ({ setPage }) => {
+  const [selectedDesign, setSelectedDesign] = useState(null);
+
+  return (
+    <div style={{ paddingTop:80, minHeight:"100vh", background:"var(--bg)" }}>
+      <div style={{ background:"var(--bg2)", padding:"60px 40px", borderBottom:"1px solid var(--card-border)" }}>
+        <div style={{ maxWidth:1400, margin:"0 auto" }}>
+          <div style={{ fontSize:11, letterSpacing:"0.3em", color:"var(--gold)", fontWeight:600, marginBottom:12, textTransform:"uppercase" }}>Custom Craft</div>
+          <h1 className="font-display" style={{ fontSize:56, fontWeight:300, color:"var(--text)" }}>Embroidery Work</h1>
+          <p style={{ fontSize:14, color:"var(--text3)", marginTop:12 }}>Choose an embroidery design. Each image is priced at ₹1,500.</p>
+        </div>
+      </div>
+      <div style={{ maxWidth:1400, margin:"0 auto", padding:"40px" }}>
+        <div className="grid-3" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:24 }}>
+          {EMBROIDERY_DESIGNS.map((design, i) => (
+            <ProductCard key={design.id} product={design} delay={i * 60} onView={() => setSelectedDesign(design)} />
+          ))}
+        </div>
+        <div style={{ textAlign:"center", marginTop:40 }}>
+          <Btn onClick={() => setPage("order")}>Order Embroidery Work <Icon name="arrow" size={16} /></Btn>
+        </div>
+      </div>
+      {selectedDesign && (
+        <DesignModal product={selectedDesign} onClose={() => setSelectedDesign(null)} />
+      )}
+    </div>
+  );
+};
+
 const OrderPage = ({ setPage }) => {
   const [selectedDesign, setSelectedDesign] = useState(null);
   const [customerName, setCustomerName] = useState("");
@@ -365,6 +440,7 @@ const OrderPage = ({ setPage }) => {
 
   const designs = [
     ...PRODUCTS,
+    ...EMBROIDERY_DESIGNS,
     ...blouses.map(blouse => ({
       ...blouse,
       description: blouse.description || "Uploaded blouse design"
@@ -1317,6 +1393,7 @@ export default function App() {
       <main>
         {page==="home" && <HomePage setPage={setPage} />}
         {page==="gallery" && <GalleryPage setPage={setPage} />}
+        {page==="embroidery" && <EmbroideryPage setPage={setPage} />}
         {page==="order" && <OrderPage setPage={setPage} />}
         {page==="adminLogin" && <AdminLoginPage setPage={setPage} setIsAdminLoggedIn={setIsAdminLoggedIn} />}
         {page==="adminDashboard" && isAdminLoggedIn && <AdminDashboard setPage={setPage} setIsAdminLoggedIn={setIsAdminLoggedIn} />}
